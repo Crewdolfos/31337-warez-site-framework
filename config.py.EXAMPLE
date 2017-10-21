@@ -1,0 +1,14 @@
+import hashlib
+
+DB_FILENAME = ':memory:'
+
+USERS = [
+         ('test', hashlib.sha256(b'test').hexdigest(), 'test@test', 0),
+]
+
+MSGS = [
+	('test', 'test', 'Test', 'Test.'),
+]
+
+LOGIN_QUERY = "SELECT * FROM users WHERE login = '{}' and password = '{}';"
+MSG_QUERY = "SELECT * FROM messages WHERE to_ = '{}';"
