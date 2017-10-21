@@ -12,3 +12,5 @@ MSGS = [
 
 LOGIN_QUERY = "SELECT * FROM users WHERE login = '{}' and password = '{}';"
 MSG_QUERY = "SELECT * FROM messages WHERE to_ = '{}';"
+
+SEND_QUERY = "INSERT INTO messages VALUES (?,?,?,?);"

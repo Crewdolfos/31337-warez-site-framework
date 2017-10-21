@@ -1,6 +1,6 @@
 #!/usr/bin/env python3.5
 
-from config import DB_FILENAME, USERS, MSGS, LOGIN_QUERY, MSG_QUERY
+from config import DB_FILENAME, USERS, MSGS, LOGIN_QUERY, MSG_QUERY, SEND_QUERY
 from views import index_view, board_view, landing_view
 
 import asyncio
@@ -56,7 +56,7 @@ async def login(request):
 	await asyncio.sleep(2)  # m4d bruteforce protection 
 
 	if len(user) > 8:
-		return web.HTTPFound('/?fail=NAME%20TOO%20LONG')
+		return web.HTTPFound('/verysecret?fail=NAME%20TOO%20LONG')
 
 	if user and password:
 		db_connection = request.app['db_connection']
@@ -68,7 +68,7 @@ async def login(request):
 		print(users)
 		
 		if users == []:
-			return web.HTTPFound('/?fail=NOT%20FOUND')
+			return web.HTTPFound('/verysecret?fail=NOT%20FOUND')
 
 		user, stored_digest, _, is_admin = users[0]
 
@@ -77,29 +77,54 @@ async def login(request):
 		session['is_admin'] = is_admin
 		return web.HTTPFound('/board')
 
-	return web.HTTPFound('/?fail=EMPTY')
+	return web.HTTPFound('/verysecret?fail=EMPTY')
 
 
 async def logout(request):
 	session = await get_session(request)
 	session.invalidate()
-	return web.HTTPFound('/')
+	return web.HTTPFound('/verysecret')
 
 
 async def board(request):
+	fail = request.GET.get('fail', '') # Safe
 	session = await get_session(request)
 	login = session['login'] if 'login' in session else None
 	if not login:
-		return web.HTTPFound('/')
+		return web.HTTPFound('/verysecret')
 	db_connection = request.app['db_connection']
 	c = db_connection.cursor()
 	c.execute(MSG_QUERY.format(login))
 	msgs = c.fetchall()
 	table = '<p>Logged in as {}</p>'.format(login)
 	for m in msgs:
-		table += '<h4>{}</h4>'.format(m[2])
+		table += '<h4>{} from {}</h4>'.format(m[2], m[0])
 		table += '<p>{}</p>'.format(m[3])
-	return web.Response(body=board_view.format(table), content_type='text/html')
+	return web.Response(body=board_view.format(table, fail), content_type='text/html')
+
+async def sendm(request):
+	session = await get_session(request)
+	login = session['login'] if 'login' in session else None
+	if not login:
+		return web.HTTPFound('/verysecret')
+
+	data = await request.post()
+	user = data.get('user', None)
+	msg = data.get('message', None)
+
+	await asyncio.sleep(2)  # m4d bruteforce protection 
+
+	if user and msg:
+		db_connection = request.app['db_connection']
+		c = db_connection.cursor()
+		print(SEND_QUERY, (login, user, 'New Mail', msg))
+		try:
+			c.execute(SEND_QUERY, (login, user, 'New Mail', msg))
+		except:
+			return web.HTTPFound('/board?fail=NOT%20FOUND')
+		return web.HTTPFound('/board?fail=SENT')
+	return web.HTTPFound('/board?fail=ERROR')
+
 
 
 def setup_app(db_connection):
@@ -115,6 +140,7 @@ def setup_app(db_connection):
 	app.router.add_get('/quote', quote)
 	app.router.add_get('/board', board)
 	app.router.add_post('/login', login)
+	app.router.add_post('/send', sendm)
 	app.router.add_get('/logout', logout)
 	app.router.add_static('/static', 'static/')
 	web.run_app(app, host='0.0.0.0', port=80)

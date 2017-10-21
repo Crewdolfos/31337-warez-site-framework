@@ -45,11 +45,12 @@ board_view = base.format('''
 <p>board</p>
 <a href='/logout'>Logout</a>
 {}
-<form action="/crewmail" method="post">
-  <label for="login">User:</label>
-  <input id="login" type="text" name="login">
-  <label for="msg">MSG:</label>
-  <input id="password" type="text" name="password">
-  <input type="submit" value="Login">
+<form action="/send" method="post">
+  <label for="user">User:</label>
+  <input id="user" type="text" name="user">
+  <label for="message">MSG:</label>
+  <input id="message" type="text" name="message">
+  <input type="submit" value="Sned!">
 </form>
+<p>{}</p>
 ''')
